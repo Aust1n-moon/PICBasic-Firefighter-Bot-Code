@@ -1,13 +1,4 @@
-'''GCBASIC Program.
-'''--------------------------------------------------------------------------------------------------------------------------------
-'''Description:  [todo]
-'''
-'''@author     [todo]
-'''@licence    GPL
-'''@version    [todo]
-'''@date       [todo]
-'''********************************************************************************
-
+'chip setup
 #chip 16f18875  
 
 'Defines for LCD
@@ -34,8 +25,8 @@ DIR PortD.7 OUT
 
 
 'define for phototransistors and sensors
-#Define photoIN portA.1
-Dir photoIN IN
+#Define photo portA.1
+Dir photo IN
 
 #Define WL PortC.2
 Dir WL IN 
@@ -50,29 +41,26 @@ Dim DigitalWallF as Byte
 Dim DigitalWallL as Byte
 
 'Defines for motors and fan
-#Define M0 portB.6
-Dir M0 OUT
+#Define RMF portB.6
+Dir RMF OUT
 
-#Define M1 portB.7
-Dir M1 OUT
+#Define RMB portB.7
+Dir RMB OUT
 
-#Define MA portB.5
-Dir MA OUT
+#Define LMF portB.5
+Dir LMF OUT
 
-#Define MB portB.4
-Dir MB OUT
+#Define LMB portB.4
+Dir LMF OUT
 
 #Define Fan PortB.3
 Dir Fan OUT 
 
+'set flame detection to false
+Flame = False
 
-main:
-
-  set M0 ON
-  set M1 OFF
-  set MA ON
-  set MB OFF
-  
+Do Forever  
+  'put analog ports into commands
   WallLVolt = ReadAD(ANC2)
   WallFVolt = ReadAD(ANC3)
 
@@ -80,13 +68,16 @@ main:
   DigitalWallF = ((6787/(WallFVolt-3))-4)/5
 
   DigitalFlame = ReadAD(AN0)
-
+  
+  'clear screen before displaying
   cls
-
+  
+  'display flame detection on line 1
   locate 0, 0
   Print "Flame: "
   Print DigitalFlame
 
+  'display wall detection on line 2
   locate 1,0
   print "WL: "
   print DigitalWallL
@@ -94,32 +85,112 @@ main:
   locate 1,8
   print "WF: "
   print DigitalWallF
+    
+  'turning left if not detecting left wall
+  if DigitalWallL > 13 Then
+      set LMF off
+      set RMF on
+      Set RMB off
+      Set LMB off
+  end if 
 
-  if DigitalFlame < 50 Then
-    set Fan ON
-  else
-    set Fan OFF 
+  'turning right if the front wall is too close
+  if DigitalWallF < 18 Then
+    TURNRIGHT90
   end if
-  wait 100 ms
 
+  'forward if detecting that a left wall is close
+  if DigitalWallL < 13 Then
+      FW
+  end if 
 
-  if photoIN = 0 Then 
-    goto backwards
-    End If
-     goto main
+  'flame detection
+  if DigitalFlame < 8 Then
+      Flame = true
+  End if  
 
-backwards:
+  'when no flame
+  if DigitalFlame > 200 Then
+    Flame = false
+  end if 
 
-  set M0 OFF
-  set M1 ON
-  set MA OFF
-  set MB ON
-
-  wait 2000 ms
-
-  if photoIN = 0 Then
-    goto backwards
-    End If
-  return
-
+  'blow out flame when seeing a flame
+  if Flame = true Then
+    Stop
+    blow
+  Else
+    set Fan off
+  end If 
   
+  'adjust to right if the bot is driving towards the left wall
+  if DigitalWallL < 9 then
+    TURNRIGHT
+  end if
+  
+  'go straight if both sensors are detecting too far away
+  if DigitalWallF >30 Then
+    if DigitalWallL >30 Then
+      Set LMF on
+      SET RMF on
+      Set RMB off
+      Set LMB off
+    end If
+  end If
+
+  wait 10 ms
+
+Loop
+
+
+'sub in forward
+sub FW
+  set LMB off
+  set LMF On 
+  set RMB off 
+  set RMF On 
+end Sub
+
+'sub in stop
+sub Stop
+  set LMB off
+  set LMF off
+  set RMB off 
+  set RMF off 
+end Sub
+
+'sub turning left on the spot
+Sub TURNLEFT90
+    SET LMF OFF
+    SET LMB ON
+    SET RMF ON
+    SET RMB OFF
+end sub
+
+'sub turning right on the spot    
+Sub TURNRIGHT90
+    SET LMF ON
+    SET LMB OFF
+    SET RMF OFF 
+    SET RMB ON
+end sub     
+
+'sub turning right
+Sub TURNRIGHT
+    SET LMF ON
+    SET LMB OFF
+    SET RMF OFF 
+    SET RMB OFF
+end sub
+
+'sub blowing out fan
+Sub blow
+    SET FAN ON
+    TURNLEFT90
+    wait 300 ms
+    STOP
+    wait 50 ms
+    TURNRIGHT90
+    wait 250 ms
+    STOP
+    wait 50 ms
+end sub
