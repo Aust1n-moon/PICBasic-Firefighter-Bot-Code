@@ -1,0 +1,125 @@
+'''GCBASIC Program.
+'''--------------------------------------------------------------------------------------------------------------------------------
+'''Description:  [todo]
+'''
+'''@author     [todo]
+'''@licence    GPL
+'''@version    [todo]
+'''@date       [todo]
+'''********************************************************************************
+
+#chip 16f18875  
+
+'Defines for LCD
+#Define LCD_Lines 2
+#Define LCD_IO 4
+
+#Define LCD_RS PortD.0
+#Define LCD_RW PortD.1
+#Define LCD_Enable PortD.2
+
+#Define LCD_DB4 PortD.4
+#Define LCD_DB5 PortD.5
+#Define LCD_DB6 PortD.6
+#Define LCD_DB7 PortD.7
+  
+DIR PortD.0 OUT 
+DIR PortD.1 OUT 
+DIR PortD.2 OUT 
+DIR PortD.4 OUT 
+DIR PortD.5 OUT 
+DIR PortD.6 OUT 
+DIR PortD.7 OUT 
+
+
+
+'define for phototransistors and sensors
+#Define photoIN portA.1
+Dir photoIN IN
+
+#Define WL PortC.2
+Dir WL IN 
+
+#Define WF PortC.3
+Dir WF IN 
+
+Dim WallFVolt as Byte
+Dim WallLVolt as Byte
+
+Dim DigitalWallF as Byte
+Dim DigitalWallL as Byte
+
+'Defines for motors and fan
+#Define M0 portB.6
+Dir M0 OUT
+
+#Define M1 portB.7
+Dir M1 OUT
+
+#Define MA portB.5
+Dir MA OUT
+
+#Define MB portB.4
+Dir MB OUT
+
+#Define Fan PortB.3
+Dir Fan OUT 
+
+
+main:
+
+  set M0 ON
+  set M1 OFF
+  set MA ON
+  set MB OFF
+  
+  WallLVolt = ReadAD(ANC2)
+  WallFVolt = ReadAD(ANC3)
+
+  DigitalWallL = ((6787/(WallLVolt-3))-4)/5
+  DigitalWallF = ((6787/(WallFVolt-3))-4)/5
+
+  DigitalFlame = ReadAD(AN0)
+
+  cls
+
+  locate 0, 0
+  Print "Flame: "
+  Print DigitalFlame
+
+  locate 1,0
+  print "WL: "
+  print DigitalWallL
+
+  locate 1,8
+  print "WF: "
+  print DigitalWallF
+
+  if DigitalFlame < 50 Then
+    set Fan ON
+  else
+    set Fan OFF 
+  end if
+  wait 100 ms
+
+
+  if photoIN = 0 Then 
+    goto backwards
+    End If
+     goto main
+
+backwards:
+
+  set M0 OFF
+  set M1 ON
+  set MA OFF
+  set MB ON
+
+  wait 2000 ms
+
+  if photoIN = 0 Then
+    goto backwards
+    End If
+  return
+
+  
